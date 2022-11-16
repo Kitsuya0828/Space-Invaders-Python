@@ -33,11 +33,15 @@ alien_dic = {
 # \033[nC #n行右に
 # \033[nD #n行左に
 
+
+canvas_width = 50
+canvas_height = 20
+
 class Alien:
     def __init__(self, x, y, score):
         self.x = x
         self.y = y
-        self.radius = 30
+        self.radius = 1
         self.hitcircle = (self.x, self.y)
         self.xdir = 1
         self.ydir = 0
@@ -47,24 +51,18 @@ class Alien:
         self.character_list = alien_dic[score]
         self.character_length = len(self.character_list)
 
-
     def draw(self, win):
         row = win[self.y]
         row_before = row[:self.x-(self.character_length//2)]
         row_after = row[self.x+(1+self.character_length//2):]
         win[self.y] = row_before + self.character_list + row_after
-        # self.hitcircle = (self.x,self.y)
-
-    # def grow(self,flower):
-    #     self.radius += 2
 
     def move(self):
         self.x += self.xdir
 
-    def shiftDown(self):
+    def shift_down(self):
         self.xdir *= -1
         self.y += self.radius
-        self.edge = False
 
 class Player:
     def __init__(self, x):
@@ -82,16 +80,32 @@ class Player:
         row = win[-1]
         win[-1] = row[: self.x - 2] + self.character + row[self.x + 3: ]
 
+class Cannon:
+    def __init__(self, x):
+        self.y = canvas_height - 2
+        self.x = x
+        self.r = 8
 
+    def draw(self, win):
+        row = win[self.y]
+        win[self.y] = row[: self.x] + [Color.CYAN + ':' + Color.END] + row[self.x + 1: ]
+    
+    def move(self):
+        if self.y > 0:
+            self.y -= 1
 
-os.system('clear')
+    def collide(self, alien):
+        if self.y == alien.y and abs(self.x - alien.x) <= (alien.character_length//2):
+            return True
+        return False 
 
-canvas_width = 50
-canvas_height = 10
+# ターミナルをクリア
+os.system('cls' if os.name in ('nt', 'dos') else 'clear')
 
+# alienの初期配置
 aliens = []
 alien_scores = list(alien_dic.keys())[::-1]
-for i, row in enumerate(range(1, 8, 2)):
+for i, row in enumerate(range(1, 2*(len(alien_scores)), 2)):
     alien_score = alien_scores[i]
 
     if alien_score == 500:
@@ -103,8 +117,7 @@ for i, row in enumerate(range(1, 8, 2)):
         aliens.append(Alien(column, row, alien_score))
 
 player = Player(canvas_width//2)
-
-
+cannons = []
 
 while True:
     if kbhit():
@@ -115,37 +128,49 @@ while True:
             player.move("left")
         elif char == "d":
             player.move("right")
+        elif char == "w":
+            cannons.append(Cannon(player.x))
 
-    win = [[' ' for j in range(canvas_width)] for i in range(canvas_height)]
+    canvas = [[' ' for j in range(canvas_width)] for i in range(canvas_height)]
+
+    # 衝突判定
+    for cannon in cannons:
+        for alien in aliens:
+            if cannon.collide(alien):
+                aliens.remove(alien)
+                cannons.remove(cannon)
+    
+    # alienの描画&移動
+    flag = False
     for alien in aliens:
-        alien.draw(win)
-        alien.move()
+        if ((alien.x + alien.character_length//2) >= canvas_width - 1 and alien.xdir == 1) or ((alien.x - alien.character_length//2) == 0 and alien.xdir == -1):
+            flag = True
+            break
+    for alien in aliens:
+        alien.draw(canvas)
+        if flag:
+            alien.shift_down()
+        else:
+            alien.move()
 
-    player.draw(win)
+    # playerの描画
+    player.draw(canvas)
 
+    # cannonの描画&移動
+    for cannon in cannons:
+        cannon.draw(canvas)
+        if cannon.y == 0:
+            cannons.remove(cannon)
+        else:
+            cannon.move()
+
+    # canvasの描画
     output = []
     for row in range(canvas_height):
-        output.append(''.join(win[row]))
-    print('\n'.join(output) + "\n"+"\033[10A",end="")
+        output.append(''.join(canvas[row]))
+    print('\n'.join(output) + "\n" + f"\033[{canvas_height}A",end="")
     sleep(0.2)
 
-
-# class Drop:
-#     def __init__(self,win,x):
-#         self.win = win
-#         self.y =  350
-#         self.vel = 10
-#         self.x = x
-#         self.r = 8
-
-#     def draw(self):
-#         pygame.draw.rect(self.win,(150,0,255),(self.x,self.y,self.r*2,self.r*2),0)
-
-#     def collide(self,drop,flower):
-#         dist = math.sqrt(np.abs(flower.hitcircle[0]-drop.x)**2+np.abs(flower.hitcircle[1]-drop.y)**2)
-#         if dist < 38:
-#             return True
-#         return False 
 
 # def drawWindow(ship,drops):
 #     ship.draw()
