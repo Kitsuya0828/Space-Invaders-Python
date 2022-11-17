@@ -1,6 +1,7 @@
 import os
 from time import sleep
 from kbhit import *
+import random
 
 atexit.register(set_normal_term)
 set_curses_term()
@@ -29,18 +30,15 @@ alien_dic = {
 }
 
 canvas_width = 50
-canvas_height = 20
+canvas_height = 15
 
 class Alien:
     def __init__(self, x, y, score):
         self.x = x
         self.y = y
-        self.radius = 1
-        self.hitcircle = (self.x, self.y)
         self.xdir = 1
         self.ydir = 0
-        self.edge = False
-        self.moveloop = 0
+        self.radius = 1
         self.score = score
         self.character_list = alien_dic[score]
         self.character_length = len(self.character_list)
@@ -75,26 +73,79 @@ class Player:
         win[-1] = row[: self.x - 2] + self.character + row[self.x + 3: ]
 
 class Cannon:
-    def __init__(self, x):
-        self.y = canvas_height - 2
+    def __init__(self, x, y, ydir):
+        self.y = y
+        self.ydir = ydir
         self.x = x
         self.r = 8
 
     def draw(self, win):
         row = win[self.y]
-        win[self.y] = row[: self.x] + [Color.CYAN + ':' + Color.END] + row[self.x + 1: ]
+        if self.ydir == -1:
+            win[self.y] = row[: self.x] + ['!'] + row[self.x + 1: ]
+        else:
+            win[self.y] = row[: self.x] + [Color.CYAN + ':' + Color.END] + row[self.x + 1: ]
     
     def move(self):
-        if self.y > 0:
-            self.y -= 1
+        if self.y > 0 and self.y < canvas_height-1:
+            self.y += self.ydir
 
-    def collide(self, alien):
+    def collide_alien(self, alien):
         if self.y == alien.y and abs(self.x - alien.x) <= (alien.character_length//2):
             return True
-        return False 
+        return False
+    
+    def collide_player(self, player):
+        if self.y == canvas_height - 1 and abs(self.x - player.x) <= 2:
+            return True        
+        return False
+
+def fire(alien, canvas, prob):
+    if alien.y + 2 < canvas_height and canvas[alien.y + 2][alien.x] == ' ':
+        if random.random() <= prob:
+            return True
+    return False
+
 
 # ターミナルをクリア
 os.system('cls' if os.name in ('nt', 'dos') else 'clear')
+
+# スタート画面
+canvas = [[' ' for j in range(canvas_width)] for i in range(canvas_height)]
+title = """
+ ___                      
+/ __| _ __  __ _  __  ___ 
+\__ \| '_ \/ _` |/ _|/ -_)
+|___/| .__/\__,_|\__|\___|
+     |_|                  
+ ___                      _               
+|_ _| _ _  __ __ __ _  __| | ___  _ _  ___
+ | | | ' \ \ V // _` |/ _` |/ -_)| '_|(_-<
+|___||_||_| \_/ \__,_|\__,_|\___||_|  /__/
+"""
+left_up = (2, 4)
+for i, row in enumerate(title.split('\n')):
+    for j, char in enumerate(row):
+        if char:
+            canvas[left_up[0]+i][left_up[1]+j] = char
+output = []
+for row in range(canvas_height):
+    output.append(''.join(canvas[row]))
+flash_flag = True
+while True:
+    if kbhit():
+        char = getch()
+        if char == "a":
+            break
+    
+    flash_message = " " * 50
+    if flash_flag:
+        flash_message = " " * 16 + "press [A] to start" + " " * 16
+    flash_flag = not flash_flag
+    
+    print('\n'.join(output) + "\n" + f"{flash_message}\n" + f"\033[{canvas_height+1}A",end="")
+    sleep(0.5)
+
 
 # alienの初期配置
 aliens = []
@@ -112,6 +163,10 @@ for i, row in enumerate(range(1, 2*(len(alien_scores)), 2)):
 
 player = Player(canvas_width//2)
 cannons = []
+time_left = 3
+prob = 0.01
+score = 0
+game_over = False
 
 while True:
     if kbhit():
@@ -123,23 +178,32 @@ while True:
         elif char == "d":
             player.move("right")
         elif char == "w":
-            cannons.append(Cannon(player.x))
+            cannons.append(Cannon(player.x, canvas_height - 2, -1))
 
     canvas = [[' ' for j in range(canvas_width)] for i in range(canvas_height)]
 
     # 終了判定
-    game_over = False
+    if len(aliens) == 0:
+        break
     for alien in aliens:
-        if alien.y == canvas_height:
-            sys.exit()
+        if alien.y == canvas_height - 1:
+            game_over = True
 
     # 衝突判定
     for cannon in cannons:
         for alien in aliens:
-            if cannon.collide(alien):
+            if cannon.ydir == -1 and cannon.collide_alien(alien):
+                score += alien.score
                 aliens.remove(alien)
                 cannons.remove(cannon)
+        if cannon.ydir == 1 and cannon.collide_player(player):
+            time_left -= 1
+            if time_left <= 0:
+                game_over = True
     
+    if game_over:
+        break
+
     # alienの描画&移動
     flag = False
     for alien in aliens:
@@ -148,6 +212,11 @@ while True:
             break
     for alien in aliens:
         alien.draw(canvas)
+    
+    for alien in aliens:
+        if fire(alien, canvas, prob):
+            cannons.append(Cannon(alien.x, alien.y + 1, 1))
+        
         if flag:
             alien.shift_down()
         else:
@@ -159,7 +228,7 @@ while True:
     # cannonの描画&移動
     for cannon in cannons:
         cannon.draw(canvas)
-        if cannon.y == 0:
+        if cannon.y == 0 or cannon.y == canvas_height - 1:
             cannons.remove(cannon)
         else:
             cannon.move()
@@ -168,65 +237,63 @@ while True:
     output = []
     for row in range(canvas_height):
         output.append(''.join(canvas[row]))
-    print('\n'.join(output) + "\n" + f"\033[{canvas_height}A",end="")
+    print('\n'.join(output) + "\n" + f"SCORE : {time_left}\n" + f"\033[{canvas_height+1}A",end="")
     sleep(0.2)
 
 
-# def drawWindow(ship,drops):
-#     ship.draw()
+canvas = [[' ' for j in range(canvas_width)] for i in range(canvas_height)]
 
-#     for i in drops:
-#         i.draw()
+# ゲームオーバー画面
+game_over_title = """
+  ___    _    __  __  ___ 
+ / __|  /_\  |  \/  || __|
+| (_ | / _ \ | |\/| || _| 
+ \___|/_/ \_\|_|  |_||___|
+                          
+  ___  __   __ ___  ___ 
+ / _ \ \ \ / /| __|| _ \\
+| (_) | \ V / | _| |   /
+ \___/   \_/  |___||_|_\\
+"""
 
-#     for b in flowers:
-#         b.draw()
-#         b.move()  
+# ゲームクリア画面
+game_clear_title = """
+  ___    _    __  __  ___ 
+ / __|  /_\  |  \/  || __|
+| (_ | / _ \ | |\/| || _| 
+ \___|/_/ \_\|_|  |_||___|
+                          
+  ___  _     ___    _    ___ 
+ / __|| |   | __|  /_\  | _ \\
+| (__ | |__ | _|  / _ \ |   /
+ \___||____||___|/_/ \_\|_|_\\
+"""
 
-#     pygame.display.update()
+if game_over:
+    left_up = (2, 11)
+    title = game_over_title
+else:
+    left_up = (2, 10)
+    title = game_clear_title
 
-# drops = []
-# flowers = []
-# shootloop = 0
-# for i in range(6):
-#     x = i*80 + 80
-#     flowers.append(Flower(win,x))
-# ship = Ship(win)
-# run = True
-# while run:
-#     for event in pygame.event.get():
-#         if event.type == pygame.QUIT:
-#             run = False   
-
-#     keys = pygame.key.get_pressed()
-
-#     if shootloop > 0:
-#         shootloop += 1
-#     if shootloop > 20:
-#         shootloop = 0
-
-#     if keys[pygame.K_SPACE] and shootloop == 0:
-#         if len(drops) <= 10:
-#             drops.append(Drop(win,ship.x))
-
-#         shootloop = 1
-
-#     for drop in drops:
-#         if drop.y > 0:
-#             drop.y -= 1
-#         else:
-#             drops.pop(drops.index(drop))    
-
-#         for flower in flowers:
-#             if drop.collide(drop,flower):
-#                 flower.grow(flower)
-#                 drops.pop(drops.index(drop))
-
-#     for flower in flowers:
-#         if flower.x > 600 or flower.x < 0:
-#             flower.edge = True
-
-#         if flower.edge:
-#             flower.shiftDown()
-
-    # ship.move(keys)
-    # win.fill((51,51,51))
+for i, row in enumerate(title.split('\n')):
+    for j, char in enumerate(row):
+        if char:
+            canvas[left_up[0]+i][left_up[1]+j] = char
+output = []
+for row in range(canvas_height):
+    output.append(''.join(canvas[row]))
+flash_flag = True
+while True:
+    if kbhit():
+        char = getch()
+        if char == "a":
+            break
+    
+    flash_message = " " * 50
+    if flash_flag:
+        flash_message = " " * 16 + "press [A] to end" + " " * 16
+    flash_flag = not flash_flag
+    
+    print('\n'.join(output) + "\n" + f"{flash_message}\n" + f"\033[{canvas_height+1}A",end="")
+    sleep(0.5)
