@@ -28,12 +28,6 @@ alien_dic = {
     500: [Color.PURPLE + '<', 'o', ' ', 'o', '>' + Color.END]
 }
 
-# \033[nA #n行上に
-# \033[nB #n行下に
-# \033[nC #n行右に
-# \033[nD #n行左に
-
-
 canvas_width = 50
 canvas_height = 20
 
@@ -132,6 +126,12 @@ while True:
             cannons.append(Cannon(player.x))
 
     canvas = [[' ' for j in range(canvas_width)] for i in range(canvas_height)]
+
+    # 終了判定
+    game_over = False
+    for alien in aliens:
+        if alien.y == canvas_height:
+            sys.exit()
 
     # 衝突判定
     for cannon in cannons:
