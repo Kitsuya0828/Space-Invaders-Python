@@ -9,9 +9,6 @@ https://user-images.githubusercontent.com/60843722/202617572-89b5d90c-09b9-4f69-
 * Python 3.9.15
 
 ## Usage
-```zsh
-python main.py
-```
 By using `--help` or `-h` option, you can get a useful message about the game settings.
 
 ```zsh
