@@ -30,7 +30,7 @@ def getche():
 
 def kbhit():
     dr,dw,de = select([sys.stdin], [], [], 0)
-    return dr != []     # ここだけ修正
+    return dr != []
 
 if __name__ == '__main__':
     atexit.register(set_normal_term)

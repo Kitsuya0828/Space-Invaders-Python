@@ -341,7 +341,7 @@ if __name__ == "__main__":
     parser.add_argument(
         '--diff',
         default="easy",
-        help="the game difficulty (easy | medium | hard)",
+        help="the game difficulty (default=easy, easy | medium | hard)",
         type=str)
     parser.add_argument(
         '--lives',
