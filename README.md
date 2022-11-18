@@ -27,7 +27,7 @@ optional arguments:
 You can run the program with the following commands:
 
 ```zsh
-python raspi_main.py
+python main.py
 ```
 
 ---
