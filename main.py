@@ -331,6 +331,8 @@ def main(args):
             f"\033[{canvas_height+1}A",
             end="")
         sleep(0.5)
+    
+    os.system('cls' if os.name in ('nt', 'dos') else 'clear')
 
 
 if __name__ == "__main__":
