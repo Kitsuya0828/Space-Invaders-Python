@@ -1,6 +1,8 @@
 # Space Invaders Python
 
 
+https://user-images.githubusercontent.com/60843722/202617572-89b5d90c-09b9-4f69-93a4-50efb591eb2c.mp4
+
 
 ## Development Environment
 * MacBook Pro (2021, Apple M1 Pro)
@@ -31,6 +33,9 @@ python raspi_main.py
 ---
 
 ## Raspberry Pi Implementation
+
+![IMG_8485](https://user-images.githubusercontent.com/60843722/202617798-607b696c-6665-46c3-92a4-176ee3fb63ca.jpg)
+
 
 You can also run this program on the [Raspberry Pi](https://en.wikipedia.org/wiki/Raspberry_Pi).
 
