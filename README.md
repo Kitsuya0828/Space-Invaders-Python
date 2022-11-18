@@ -1,10 +1,10 @@
 # Space Invaders Python
 
+
+
 ## Development Environment
 * MacBook Pro (2021, Apple M1 Pro)
 * Python 3.9.15
-
-
 
 ## Usage
 ```zsh
@@ -30,7 +30,7 @@ python raspi_main.py
 
 ---
 
-## Rasberry Pi Implementation
+## Raspberry Pi Implementation
 
 You can also run this program on the [Raspberry Pi](https://en.wikipedia.org/wiki/Raspberry_Pi).
 
